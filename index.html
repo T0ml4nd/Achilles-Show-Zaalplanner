@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Turnzaal Indelingsplanner</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-title">
+      <span class="header-icon">🤸</span>
+      <h1>Turnzaal Indelingsplanner</h1>
+    </div>
+    <div class="header-actions">
+      <div class="layout-name-wrap">
+        <input id="layout-name" type="text" class="layout-name-input" placeholder="Vul je naam in voor het opslaan…" maxlength="60" />
+      </div>
+      <button id="btn-save"       class="btn btn-secondary">💾 Opslaan</button>
+      <button id="btn-load-wrap"  class="btn btn-secondary">📂 Laden<input id="btn-load" type="file" accept=".json" /></button>
+      <button id="btn-export-png" class="btn btn-secondary">⬇ Exporteer PNG</button>
+      <button id="btn-export-txt" class="btn btn-secondary">📄 Materiaallijst</button>
+      <button id="btn-clear"      class="btn btn-danger">🗑 Alles wissen</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <p class="sidebar-hint">
+        Klik op een item om het op de vloer te plaatsen.<br>
+        Selecteer een geplaatst item en sleep het <strong>↻</strong> symbool om te draaien.<br>
+        Sleep items om ze te verplaatsen. Sleep naar 🗑 om te verwijderen.
+      </p>
+
+      <!-- Notitie toevoegen -->
+      <div class="note-launcher">
+        <button id="btn-add-note" class="btn btn-note">📝 Notitie toevoegen</button>
+      </div>
+
+      <!-- Vervang de inhoud hieronder met de uitvoer van generate_sidebar.py -->
+      <div class="category" data-open="true">
+        <button class="category-header">
+          <span class="category-icon">📦</span>
+          <span class="category-name">Grote toestellen</span>
+          <span class="category-chevron">▾</span>
+        </button>
+        <ul class="category-items">
+          <li class="equipment-item"
+              draggable="true"
+              data-id="balk"
+              data-label="balk"
+              data-img="images/Grote toestellen/balk.png">
+            <span class="item-label">balk</span>
+            <span class="item-count" data-for="balk">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="brug"
+              data-label="brug"
+              data-img="images/Grote toestellen/brug.png">
+            <span class="item-label">brug</span>
+            <span class="item-count" data-for="brug">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="paard"
+              data-label="paard"
+              data-img="images/Grote toestellen/paard.png">
+            <span class="item-label">paard</span>
+            <span class="item-count" data-for="paard">0</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="category" data-open="false">
+        <button class="category-header">
+          <span class="category-icon">🟦</span>
+          <span class="category-name">Matten</span>
+          <span class="category-chevron">▾</span>
+        </button>
+        <ul class="category-items">
+          <li class="equipment-item"
+              draggable="true"
+              data-id="matje"
+              data-label="matje"
+              data-img="images/Matten/matje.png">
+            <span class="item-label">matje</span>
+            <span class="item-count" data-for="matje">0</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="category" data-open="false">
+        <button class="category-header">
+          <span class="category-icon">📦</span>
+          <span class="category-name">Springtoestellen</span>
+          <span class="category-chevron">▾</span>
+        </button>
+        <ul class="category-items">
+          <li class="equipment-item"
+              draggable="true"
+              data-id="plank"
+              data-label="plank"
+              data-img="images/Springtoestellen/plank.png">
+            <span class="item-label">plank</span>
+            <span class="item-count" data-for="plank">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="trampoline"
+              data-label="trampoline"
+              data-img="images/Springtoestellen/trampoline.png">
+            <span class="item-label">trampoline</span>
+            <span class="item-count" data-for="trampoline">0</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="category" data-open="false">
+        <button class="category-header">
+          <span class="category-icon">📦</span>
+          <span class="category-name">Troepjes</span>
+          <span class="category-chevron">▾</span>
+        </button>
+        <ul class="category-items">
+          <li class="equipment-item"
+              draggable="true"
+              data-id="hoepel"
+              data-label="hoepel"
+              data-img="images/Troepjes/hoepel.png">
+            <span class="item-label">hoepel</span>
+            <span class="item-count" data-for="hoepel">0</span>
+          </li>
+        </ul>
+      </div>
+
+    </aside>
+
+    <!-- MAIN CANVAS AREA -->
+    <main class="canvas-area">
+      <div id="floor-canvas">
+        <!-- geplaatste items worden hier ingevoegd door app.js -->
+      </div>
+
+      <div id="trashcan" class="trashcan">
+        <span class="trashcan-icon">🗑️</span>
+        <span class="trashcan-label">Sleep hier naartoe om te verwijderen</span>
+      </div>
+    </main>
+
+  </div>
+
+</body>
+</html>
