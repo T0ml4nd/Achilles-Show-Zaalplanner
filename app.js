@@ -308,6 +308,8 @@ function startMove(e, wrapper) {
   state.moving      = wrapper;
   state.moveOffsetX = e.clientX - itemRect.left;
   state.moveOffsetY = e.clientY - itemRect.top;
+  // Bring to front by moving to last position in the DOM
+  floorCanvas.appendChild(wrapper);
 }
 
 // ── Global mousemove ──────────────────────────
