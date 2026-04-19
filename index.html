@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Turnzaal Indelingsplanner</title>
+  <title>Achilles Show Zaalplanner</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <script src="app.js" defer></script>
@@ -13,17 +13,17 @@
   <header class="app-header">
     <div class="header-title">
       <span class="header-icon">🤸</span>
-      <h1>Turnzaal Indelingsplanner</h1>
+      <h1>Achilles Show Zaalplanner</h1>
     </div>
     <div class="header-actions">
       <div class="layout-name-wrap">
-        <input id="layout-name" type="text" class="layout-name-input" placeholder="Vul je naam in voor het opslaan…" maxlength="60" />
+        <input id="layout-name" type="text" class="layout-name-input" placeholder="Naam van het nummer" maxlength="60" />
       </div>
       <button id="btn-save"       class="btn btn-secondary">💾 Opslaan</button>
-      <button id="btn-load-wrap"  class="btn btn-secondary">📂 Laden<input id="btn-load" type="file" accept=".json" /></button>
-      <button id="btn-export-png" class="btn btn-secondary">⬇ Exporteer PNG</button>
-      <button id="btn-export-txt" class="btn btn-secondary">📄 Materiaallijst</button>
-      <button id="btn-clear"      class="btn btn-danger">🗑 Alles wissen</button>
+      <button id="btn-load-wrap"  class="btn btn-secondary">📂 Indeling inladen<input id="btn-load" type="file" accept=".json" /></button>
+      <button id="btn-export-png" class="btn btn-secondary">⬇ Download als PNG</button>
+      <button id="btn-export-txt" class="btn btn-secondary">📄 Download materiaallijst</button>
+      <button id="btn-clear"      class="btn btn-danger">🗑️ Alles verwijderen</button>
     </div>
   </header>
 
@@ -32,9 +32,11 @@
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <p class="sidebar-hint">
-        Klik op een item om het op de vloer te plaatsen.<br>
-        Selecteer een geplaatst item en sleep het <strong>↻</strong> symbool om te draaien.<br>
-        Sleep items om ze te verplaatsen. Sleep naar 🗑 om te verwijderen.
+        Klik op een toestel om het op de vloer te plaatsen.<br>
+        Sleep de toestellen om ze te verplaatsen.<br>
+        Gebruik het <strong>⬓</strong> symbool om een toestel doorzichtig te maken.<br>
+        Gebruik het <strong>↻</strong> symbool om te toestellen te draaien.<br>
+        Gebruik het <strong>🗑️</strong> symbool om een toestel te verwijderen of sleep het naar de prullenbak onderaan de pagina.
       </p>
 
       <!-- Notitie toevoegen -->

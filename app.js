@@ -429,7 +429,7 @@ function requireName() {
     layoutName.focus();
     layoutName.classList.add('input-error');
     setTimeout(() => layoutName.classList.remove('input-error'), 1500);
-    alert('Vul je naam in voordat je opslaat of exporteert.');
+    alert('Vul de naam van nummer in voordat je opslaat of exporteert.');
     return null;
   }
   return name;
