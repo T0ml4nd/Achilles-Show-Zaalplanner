@@ -67,8 +67,9 @@ document.querySelectorAll('.equipment-item').forEach(li => {
 // ══════════════════════════════════════════════
 // 3. CREATE A PLACED EQUIPMENT ITEM
 // ══════════════════════════════════════════════
-function createPlacedItem(id, label, imgSrc, cx, cy, rotation) {
+function createPlacedItem(id, label, imgSrc, cx, cy, rotation, exactX, exactY, faded) {
   rotation = rotation || 0;
+  faded    = faded || false;
 
   const wrapper = document.createElement('div');
   wrapper.className        = 'placed-item';
@@ -76,6 +77,8 @@ function createPlacedItem(id, label, imgSrc, cx, cy, rotation) {
   wrapper.dataset.label    = label;
   wrapper.dataset.img      = imgSrc;
   wrapper.dataset.rotation = rotation;
+  wrapper.dataset.faded    = faded ? 'true' : 'false';
+  if (faded) wrapper.style.opacity = '0.5';
 
   const img = new Image();
   img.src       = imgSrc;
@@ -85,8 +88,15 @@ function createPlacedItem(id, label, imgSrc, cx, cy, rotation) {
   img.addEventListener('load', () => {
     const w = img.naturalWidth;
     const h = img.naturalHeight;
-    wrapper.style.left      = Math.round(cx - w / 2) + 'px';
-    wrapper.style.top       = Math.round(cy - h / 2) + 'px';
+    // If exact coordinates were provided (loading from file), use those directly.
+    // Otherwise centre the item on the click point.
+    if (exactX !== undefined && exactY !== undefined) {
+      wrapper.style.left = exactX + 'px';
+      wrapper.style.top  = exactY + 'px';
+    } else {
+      wrapper.style.left = Math.round(cx - w / 2) + 'px';
+      wrapper.style.top  = Math.round(cy - h / 2) + 'px';
+    }
     wrapper.style.width     = w + 'px';
     wrapper.style.height    = h + 'px';
     wrapper.style.transform = `rotate(${rotation}deg)`;
@@ -110,9 +120,25 @@ function createPlacedItem(id, label, imgSrc, cx, cy, rotation) {
     }
   });
 
+  // Opacity (faded) toggle handle
+  const opacityHandle = document.createElement('div');
+  opacityHandle.className   = 'opacity-handle';
+  opacityHandle.textContent = '⬓';
+  opacityHandle.title       = 'Doorzichtigheid aan/uit (gestapeld materiaal)';
+  opacityHandle.addEventListener('click', e => {
+    e.stopPropagation();
+    const isFaded = wrapper.dataset.faded === 'true';
+    wrapper.dataset.faded  = isFaded ? 'false' : 'true';
+    wrapper.style.opacity  = isFaded ? '1' : '0.5';
+    opacityHandle.classList.toggle('is-active', !isFaded);
+  });
+  // Reflect initial state (e.g. when loaded from file)
+  if (faded) opacityHandle.classList.add('is-active');
+
   wrapper.appendChild(img);
   wrapper.appendChild(rotateHandle);
   wrapper.appendChild(deleteHandle);
+  wrapper.appendChild(opacityHandle);
   floorCanvas.appendChild(wrapper);
 
   changeCount(id, +1);
@@ -428,6 +454,7 @@ btnSave.addEventListener('click', () => {
       x:        parseInt(wrapper.style.left, 10),
       y:        parseInt(wrapper.style.top,  10),
       rotation: parseFloat(wrapper.dataset.rotation) || 0,
+      faded:    wrapper.dataset.faded === 'true',
     });
   });
 
@@ -486,17 +513,10 @@ btnLoad.addEventListener('change', e => {
         if (item.width)  note.style.width  = item.width  + 'px';
         if (item.height) note.style.height = item.height + 'px';
       } else {
-        // Legacy v1 files have no type field — treat as item
-        createPlacedItem(item.id, item.label, item.img, 0, 0, item.rotation);
-        const wrapper   = floorCanvas.querySelector(`.placed-item[data-id="${item.id}"]:last-of-type`) || floorCanvas.lastElementChild;
-        const img       = wrapper.querySelector('img');
-        const applyPos  = () => {
-          wrapper.style.left      = item.x + 'px';
-          wrapper.style.top       = item.y + 'px';
-          wrapper.style.transform = `rotate(${item.rotation}deg)`;
-        };
-        if (img && img.complete) applyPos();
-        else if (img) img.addEventListener('load', applyPos);
+        // Legacy v1 files have no type field — treat as item.
+        // Pass exact x/y so position is applied inside the image load callback,
+        // avoiding any race condition from grabbing the wrapper after the fact.
+        createPlacedItem(item.id, item.label, item.img, 0, 0, item.rotation, item.x, item.y, item.faded || false);
       }
     });
   };

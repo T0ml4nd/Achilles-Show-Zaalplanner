@@ -367,7 +367,7 @@ html, body {
 .delete-handle {
   position: absolute;
   top: -30px;
-  left: calc(50% + 16px);   /* offset right of the rotate handle */
+  left: calc(50% + 28px);   /* right of the rotate handle */
   width: 24px;
   height: 24px;
   background: var(--color-danger);
@@ -388,10 +388,41 @@ html, body {
 .delete-handle:active { transform: scale(.95); }
 .placed-item.selected .delete-handle { display: flex; }
 
-/* Also nudge the rotate handle slightly left so both sit centred as a pair */
+/* Three handles sit as an evenly spaced row above the item:
+   opacity (left) — rotate (centre) — delete (right)         */
 .placed-item.selected .rotate-handle {
-  left: calc(50% - 16px);
+  left: 50%;
+  transform: translateX(-50%);
 }
+.placed-item.selected .delete-handle {
+  left: calc(50% + 28px);
+}
+
+/* ── Opacity (faded) handle ── */
+.opacity-handle {
+  position: absolute;
+  top: -30px;
+  left: calc(50% - 28px);
+  transform: translateX(-50%);
+  width: 24px;
+  height: 24px;
+  background: #6b7280;
+  color: #fff;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  z-index: 30;
+  line-height: 1;
+  transition: background .15s, transform .1s;
+}
+.opacity-handle:hover  { background: #4b5563; transform: translateX(-50%) scale(1.1); }
+.opacity-handle:active { transform: translateX(-50%) scale(.95); }
+.opacity-handle.is-active { background: #2563eb; }
+.placed-item.selected .opacity-handle { display: flex; }
 
 /* ── Note launcher button in sidebar ────────── */
 .note-launcher {
