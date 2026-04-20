@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   Turnzaal Indelingsplanner — app.js
+   Achilles Show Zaalplanner — app.js
 ════════════════════════════════════════════════ */
 'use strict';
 
@@ -36,6 +36,21 @@ const btnAddNote   = document.getElementById('btn-add-note');
 const layoutName   = document.getElementById('layout-name');
 
 // ══════════════════════════════════════════════
+// TOUCH HELPER
+// Extract a consistent {clientX, clientY} from
+// either a mouse event or a touch event.
+// ══════════════════════════════════════════════
+function getEventCoords(e) {
+  if (e.touches && e.touches.length > 0) {
+    return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+  }
+  if (e.changedTouches && e.changedTouches.length > 0) {
+    return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+  }
+  return { clientX: e.clientX, clientY: e.clientY };
+}
+
+// ══════════════════════════════════════════════
 // 1. SIDEBAR — collapse / expand
 // ══════════════════════════════════════════════
 document.querySelectorAll('.category-header').forEach(btn => {
@@ -46,7 +61,7 @@ document.querySelectorAll('.category-header').forEach(btn => {
 });
 
 // ══════════════════════════════════════════════
-// 2. SIDEBAR CLICK → place item at canvas centre
+// 2. SIDEBAR CLICK/TAP → place item at canvas centre
 // ══════════════════════════════════════════════
 document.querySelectorAll('.equipment-item').forEach(li => {
   li.addEventListener('click', () => {
@@ -88,8 +103,6 @@ function createPlacedItem(id, label, imgSrc, cx, cy, rotation, exactX, exactY, f
   img.addEventListener('load', () => {
     const w = img.naturalWidth;
     const h = img.naturalHeight;
-    // If exact coordinates were provided (loading from file), use those directly.
-    // Otherwise centre the item on the click point.
     if (exactX !== undefined && exactY !== undefined) {
       wrapper.style.left = exactX + 'px';
       wrapper.style.top  = exactY + 'px';
@@ -132,7 +145,6 @@ function createPlacedItem(id, label, imgSrc, cx, cy, rotation, exactX, exactY, f
     wrapper.style.opacity  = isFaded ? '1' : '0.5';
     opacityHandle.classList.toggle('is-active', !isFaded);
   });
-  // Reflect initial state (e.g. when loaded from file)
   if (faded) opacityHandle.classList.add('is-active');
 
   wrapper.appendChild(img);
@@ -173,7 +185,7 @@ function createNote(text, cx, cy, rotation) {
   note.className        = 'floor-note';
   note.dataset.noteId   = noteCounter;
   note.dataset.rotation = rotation;
-  note.style.left       = Math.round(cx - 90) + 'px';   // 90 = half of min-width 180
+  note.style.left       = Math.round(cx - 90) + 'px';
   note.style.top        = Math.round(cy - 50) + 'px';
   note.style.transform  = `rotate(${rotation}deg)`;
 
@@ -183,7 +195,7 @@ function createNote(text, cx, cy, rotation) {
   rotateHandle.textContent = '↻';
   rotateHandle.title       = 'Slepen om te draaien';
 
-  // Header bar (drag target + delete button)
+  // Header bar
   const header = document.createElement('div');
   header.className = 'note-header';
 
@@ -213,10 +225,11 @@ function createNote(text, cx, cy, rotation) {
   textarea.value       = text;
   textarea.rows        = 3;
 
-  // Prevent canvas deselect when clicking inside textarea
-  textarea.addEventListener('mousedown', e => e.stopPropagation());
+  // Prevent canvas deselect when interacting with textarea
+  textarea.addEventListener('mousedown',  e => e.stopPropagation());
+  textarea.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
 
-  // Resize handle (bottom-right corner)
+  // Resize handle
   const resizeHandle = document.createElement('div');
   resizeHandle.className = 'note-resize-handle';
   resizeHandle.title     = 'Versleep om formaat aan te passen';
@@ -227,48 +240,67 @@ function createNote(text, cx, cy, rotation) {
   note.appendChild(resizeHandle);
   floorCanvas.appendChild(note);
 
-  // Wire up resize
+  // Wire up resize — mouse
   resizeHandle.addEventListener('mousedown', e => {
     e.preventDefault();
     e.stopPropagation();
-    selectElement(note);
-    state.resizing     = note;
-    state.resizeStartX = e.clientX;
-    state.resizeStartY = e.clientY;
-    state.resizeStartW = note.offsetWidth;
-    state.resizeStartH = note.offsetHeight;
+    startResize(e, note);
   });
+  // Wire up resize — touch
+  resizeHandle.addEventListener('touchstart', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    startResize(e, note);
+  }, { passive: false });
 
-  // Move via header drag, rotate via rotate handle
   attachMoveRotate(note, rotateHandle, header);
   selectElement(note);
 
-  // Focus textarea immediately for new notes (text is empty)
   if (!text) setTimeout(() => textarea.focus(), 50);
 
   return note;
 }
 
+function startResize(e, note) {
+  const { clientX, clientY } = getEventCoords(e);
+  selectElement(note);
+  state.resizing     = note;
+  state.resizeStartX = clientX;
+  state.resizeStartY = clientY;
+  state.resizeStartW = note.offsetWidth;
+  state.resizeStartH = note.offsetHeight;
+}
+
 // ══════════════════════════════════════════════
-// 5. SHARED MOVE + ROTATE LOGIC
-//    Works for both placed items and notes.
-//    dragTarget: the element that initiates a move
-//    (defaults to the wrapper itself if not provided)
+// 5. SHARED MOVE + ROTATE LOGIC (mouse & touch)
 // ══════════════════════════════════════════════
 function attachMoveRotate(wrapper, rotateHandle, dragTarget) {
   const moveTarget = dragTarget || wrapper;
 
+  // ── Move: mouse ──
   moveTarget.addEventListener('mousedown', e => {
     if (e.target === rotateHandle) return;
-    // Don't start move when clicking note's delete button or textarea
     if (e.target.classList.contains('note-delete-btn')) return;
     if (e.target.classList.contains('delete-handle'))   return;
+    if (e.target.classList.contains('opacity-handle'))  return;
     e.preventDefault();
     selectElement(wrapper);
     startMove(e, wrapper);
   });
 
-  // Clicking the item body (not the header) also selects it
+  // ── Move: touch ──
+  moveTarget.addEventListener('touchstart', e => {
+    if (e.target === rotateHandle) return;
+    if (e.target.classList.contains('note-delete-btn')) return;
+    if (e.target.classList.contains('delete-handle'))   return;
+    if (e.target.classList.contains('opacity-handle'))  return;
+    if (e.target.tagName === 'TEXTAREA') return;
+    e.preventDefault();
+    selectElement(wrapper);
+    startMove(e, wrapper);
+  }, { passive: false });
+
+  // Clicking/tapping the note body (not header) also selects it
   if (dragTarget) {
     wrapper.addEventListener('mousedown', e => {
       if (e.target === rotateHandle) return;
@@ -276,14 +308,29 @@ function attachMoveRotate(wrapper, rotateHandle, dragTarget) {
       if (e.target.tagName === 'TEXTAREA') return;
       selectElement(wrapper);
     });
+    wrapper.addEventListener('touchstart', e => {
+      if (e.target === rotateHandle) return;
+      if (e.target.classList.contains('note-delete-btn')) return;
+      if (e.target.tagName === 'TEXTAREA') return;
+      selectElement(wrapper);
+    }, { passive: true });
   }
 
+  // ── Rotate: mouse ──
   rotateHandle.addEventListener('mousedown', e => {
     e.preventDefault();
     e.stopPropagation();
     selectElement(wrapper);
     state.rotating = wrapper;
   });
+
+  // ── Rotate: touch ──
+  rotateHandle.addEventListener('touchstart', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    selectElement(wrapper);
+    state.rotating = wrapper;
+  }, { passive: false });
 }
 
 // ── Select / deselect ─────────────────────────
@@ -295,29 +342,36 @@ function selectElement(el) {
   el.classList.add('selected');
 }
 
+// Tap/click on bare canvas → deselect
 floorCanvas.addEventListener('mousedown', e => {
   if (e.target === floorCanvas && state.selected) {
     state.selected.classList.remove('selected');
     state.selected = null;
   }
 });
+floorCanvas.addEventListener('touchstart', e => {
+  if (e.target === floorCanvas && state.selected) {
+    state.selected.classList.remove('selected');
+    state.selected = null;
+  }
+}, { passive: true });
 
 // ── Start moving ──────────────────────────────
 function startMove(e, wrapper) {
+  const { clientX, clientY } = getEventCoords(e);
   const itemRect = wrapper.getBoundingClientRect();
   state.moving      = wrapper;
-  state.moveOffsetX = e.clientX - itemRect.left;
-  state.moveOffsetY = e.clientY - itemRect.top;
-  // Bring to front by moving to last position in the DOM
-  floorCanvas.appendChild(wrapper);
+  state.moveOffsetX = clientX - itemRect.left;
+  state.moveOffsetY = clientY - itemRect.top;
+  floorCanvas.appendChild(wrapper);  // bring to front
 }
 
-// ── Global mousemove ──────────────────────────
-document.addEventListener('mousemove', e => {
+// ── Shared move/rotate/resize logic ──────────
+function handlePointerMove(clientX, clientY) {
   if (state.moving) {
     const canvasRect = floorCanvas.getBoundingClientRect();
-    let x = e.clientX - canvasRect.left - state.moveOffsetX;
-    let y = e.clientY - canvasRect.top  - state.moveOffsetY;
+    let x = clientX - canvasRect.left - state.moveOffsetX;
+    let y = clientY - canvasRect.top  - state.moveOffsetY;
 
     const maxX = floorCanvas.offsetWidth  - state.moving.offsetWidth;
     const maxY = floorCanvas.offsetHeight - state.moving.offsetHeight;
@@ -327,14 +381,14 @@ document.addEventListener('mousemove', e => {
     state.moving.style.left = x + 'px';
     state.moving.style.top  = y + 'px';
 
-    updateTrashHighlight(e.clientX, e.clientY);
+    updateTrashHighlight(clientX, clientY);
   }
 
   if (state.rotating) {
     const rect    = state.rotating.getBoundingClientRect();
     const cx      = rect.left + rect.width  / 2;
     const cy      = rect.top  + rect.height / 2;
-    const angle   = Math.atan2(e.clientY - cy, e.clientX - cx);
+    const angle   = Math.atan2(clientY - cy, clientX - cx);
     const degrees = angle * (180 / Math.PI) + 90;
 
     state.rotating.dataset.rotation = degrees;
@@ -342,20 +396,18 @@ document.addEventListener('mousemove', e => {
   }
 
   if (state.resizing) {
-    const dx = e.clientX - state.resizeStartX;
-    const dy = e.clientY - state.resizeStartY;
-    const newW = Math.max(80,  state.resizeStartW + dx);
+    const dx   = clientX - state.resizeStartX;
+    const dy   = clientY - state.resizeStartY;
+    const newW = Math.max(80, state.resizeStartW + dx);
     const newH = Math.max(60, state.resizeStartH + dy);
     state.resizing.style.width  = newW + 'px';
     state.resizing.style.height = newH + 'px';
   }
-});
+}
 
-// ── Global mouseup ────────────────────────────
-document.addEventListener('mouseup', e => {
+function handlePointerUp(clientX, clientY) {
   if (state.moving) {
-    if (isOverTrashcan(e.clientX, e.clientY)) {
-      // Notes don't have an equipment id, so check type first
+    if (isOverTrashcan(clientX, clientY)) {
       if (state.moving.classList.contains('placed-item')) {
         removeItem(state.moving);
       } else if (state.moving.classList.contains('floor-note')) {
@@ -370,6 +422,28 @@ document.addEventListener('mouseup', e => {
   }
   if (state.rotating) state.rotating = null;
   if (state.resizing) state.resizing = null;
+}
+
+// ── Mouse event listeners ─────────────────────
+document.addEventListener('mousemove', e => {
+  handlePointerMove(e.clientX, e.clientY);
+});
+document.addEventListener('mouseup', e => {
+  handlePointerUp(e.clientX, e.clientY);
+});
+
+// ── Touch event listeners ─────────────────────
+document.addEventListener('touchmove', e => {
+  if (state.moving || state.rotating || state.resizing) {
+    e.preventDefault();  // stop the page scrolling while interacting
+    const { clientX, clientY } = getEventCoords(e);
+    handlePointerMove(clientX, clientY);
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  const { clientX, clientY } = getEventCoords(e);
+  handlePointerUp(clientX, clientY);
 });
 
 // ── Trashcan helpers ──────────────────────────
@@ -391,7 +465,7 @@ function removeItem(wrapper) {
   changeCount(id, -1);
 }
 
-// ── Keyboard: Delete key removes selected element
+// ── Keyboard: Delete key removes selected element ──
 document.addEventListener('keydown', e => {
   if (!state.selected) return;
   if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -515,9 +589,6 @@ btnLoad.addEventListener('change', e => {
         if (item.width)  note.style.width  = item.width  + 'px';
         if (item.height) note.style.height = item.height + 'px';
       } else {
-        // Legacy v1 files have no type field — treat as item.
-        // Pass exact x/y so position is applied inside the image load callback,
-        // avoiding any race condition from grabbing the wrapper after the fact.
         createPlacedItem(item.id, item.label, item.img, 0, 0, item.rotation, item.x, item.y, item.faded || false);
       }
     });
@@ -584,7 +655,6 @@ btnExportTxt.addEventListener('click', () => {
       lines.push(`  ${String(count).padStart(3)}x  ${label}`);
     });
 
-  // Include note texts if any
   const notes = [...floorCanvas.querySelectorAll('.floor-note')]
     .map(n => n.querySelector('.note-textarea').value.trim())
     .filter(Boolean);
@@ -628,4 +698,5 @@ function clearAll(confirm_first) {
   state.selected = null;
   state.moving   = null;
   state.rotating = null;
+  state.resizing = null;
 }
