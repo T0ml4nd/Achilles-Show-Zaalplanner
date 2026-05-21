@@ -175,7 +175,7 @@ def scan_equipment():
 def render_html(categories):
     lines = []
     lines.append('    <aside class="sidebar">')
-    lines.append('      <p class="sidebar-hint">Drag items onto the floor to place them.<br>Drag a placed item to the bin to remove it.</p>')
+    lines.append('      <p class="sidebar-hint">Klik op een toestel om het op de vloer te plaatsen.<br>Sleep de toestellen om ze te verplaatsen.<br>Gebruik het <strong>⬓</strong> symbool om een toestel doorzichtig te maken.<br>Gebruik het <strong>↻</strong> symbool om te toestellen te draaien.<br>Gebruik het <strong>🗑️</strong> symbool om een toestel te verwijderen of sleep het naar de prullenbak onderaan de pagina.</p>')
     lines.append('')
 
     for i, cat in enumerate(categories):

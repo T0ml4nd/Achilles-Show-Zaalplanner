@@ -3,6 +3,9 @@
 ════════════════════════════════════════════════ */
 'use strict';
 
+// Scale factor — must match --scale in style.css
+const SCALE = 0.093;
+
 // ── State ──────────────────────────────────────
 const state = {
   counts: {},       // { [equipmentId]: number }
@@ -25,15 +28,19 @@ const state = {
 };
 
 // ── DOM refs ───────────────────────────────────
-const floorCanvas  = document.getElementById('floor-canvas');
-const trashcan     = document.getElementById('trashcan');
-const btnSave      = document.getElementById('btn-save');
-const btnLoad      = document.getElementById('btn-load');
-const btnExportPng = document.getElementById('btn-export-png');
-const btnExportTxt = document.getElementById('btn-export-txt');
-const btnClear     = document.getElementById('btn-clear');
-const btnAddNote   = document.getElementById('btn-add-note');
-const layoutName   = document.getElementById('layout-name');
+const floorCanvas    = document.getElementById('floor-canvas');
+const trashcan       = document.getElementById('trashcan');
+const btnSave        = document.getElementById('btn-save');
+const btnLoad        = document.getElementById('btn-load');
+const btnExportPng   = document.getElementById('btn-export-png');
+const btnExportTxt   = document.getElementById('btn-export-txt');
+const btnClear       = document.getElementById('btn-clear');
+const btnAddNote     = document.getElementById('btn-add-note');
+const layoutName     = document.getElementById('layout-name');
+const itemToolbar    = document.getElementById('item-toolbar');
+const toolbarOpacity = document.getElementById('toolbar-opacity');
+const toolbarRotate  = document.getElementById('toolbar-rotate');
+const toolbarDelete  = document.getElementById('toolbar-delete');
 
 // ══════════════════════════════════════════════
 // TOUCH HELPER
@@ -72,8 +79,9 @@ document.querySelectorAll('.equipment-item').forEach(li => {
     const visibleCX = Math.min(areaRect.right,  canvasRect.right)  - Math.max(areaRect.left, canvasRect.left);
     const visibleCY = Math.min(areaRect.bottom, canvasRect.bottom) - Math.max(areaRect.top,  canvasRect.top);
 
-    const cx = canvasArea.scrollLeft + visibleCX / 2;
-    const cy = canvasArea.scrollTop  + visibleCY / 2;
+    // Convert from screen pixels to canvas pixels
+    const cx = (canvasArea.scrollLeft + visibleCX / 2) / SCALE;
+    const cy = (canvasArea.scrollTop  + visibleCY / 2) / SCALE;
 
     createPlacedItem(li.dataset.id, li.dataset.label, li.dataset.img, cx, cy);
   });
@@ -115,46 +123,11 @@ function createPlacedItem(id, label, imgSrc, cx, cy, rotation, exactX, exactY, f
     wrapper.style.transform = `rotate(${rotation}deg)`;
   });
 
-  // Rotate handle
-  const rotateHandle = document.createElement('div');
-  rotateHandle.className   = 'rotate-handle';
-  rotateHandle.textContent = '↻';
-  rotateHandle.title       = 'Slepen om te draaien';
-
-  // Delete handle
-  const deleteHandle = document.createElement('div');
-  deleteHandle.className   = 'delete-handle';
-  deleteHandle.textContent = '✕';
-  deleteHandle.title       = 'Item verwijderen';
-  deleteHandle.addEventListener('click', e => {
-    e.stopPropagation();
-    if (confirm(`"${label}" verwijderen van de vloer?`)) {
-      removeItem(wrapper);
-    }
-  });
-
-  // Opacity (faded) toggle handle
-  const opacityHandle = document.createElement('div');
-  opacityHandle.className   = 'opacity-handle';
-  opacityHandle.textContent = '⬓';
-  opacityHandle.title       = 'Doorzichtigheid aan/uit (gestapeld materiaal)';
-  opacityHandle.addEventListener('click', e => {
-    e.stopPropagation();
-    const isFaded = wrapper.dataset.faded === 'true';
-    wrapper.dataset.faded  = isFaded ? 'false' : 'true';
-    wrapper.style.opacity  = isFaded ? '1' : '0.5';
-    opacityHandle.classList.toggle('is-active', !isFaded);
-  });
-  if (faded) opacityHandle.classList.add('is-active');
-
   wrapper.appendChild(img);
-  wrapper.appendChild(rotateHandle);
-  wrapper.appendChild(deleteHandle);
-  wrapper.appendChild(opacityHandle);
   floorCanvas.appendChild(wrapper);
 
   changeCount(id, +1);
-  attachMoveRotate(wrapper, rotateHandle);
+  attachMoveRotate(wrapper);
   selectElement(wrapper);
 }
 
@@ -171,8 +144,8 @@ btnAddNote.addEventListener('click', () => {
   const visibleCX = Math.min(areaRect.right,  canvasRect.right)  - Math.max(areaRect.left, canvasRect.left);
   const visibleCY = Math.min(areaRect.bottom, canvasRect.bottom) - Math.max(areaRect.top,  canvasRect.top);
 
-  const cx = canvasArea.scrollLeft + visibleCX / 2;
-  const cy = canvasArea.scrollTop  + visibleCY / 2;
+  const cx = (canvasArea.scrollLeft + visibleCX / 2) / SCALE;
+  const cy = (canvasArea.scrollTop  + visibleCY / 2) / SCALE;
 
   createNote('', cx, cy, 0);
 });
@@ -275,14 +248,13 @@ function startResize(e, note) {
 // 5. SHARED MOVE + ROTATE LOGIC (mouse & touch)
 // ══════════════════════════════════════════════
 function attachMoveRotate(wrapper, rotateHandle, dragTarget) {
+  // rotateHandle and dragTarget are still used for floor-notes
   const moveTarget = dragTarget || wrapper;
 
   // ── Move: mouse ──
   moveTarget.addEventListener('mousedown', e => {
     if (e.target === rotateHandle) return;
     if (e.target.classList.contains('note-delete-btn')) return;
-    if (e.target.classList.contains('delete-handle'))   return;
-    if (e.target.classList.contains('opacity-handle'))  return;
     e.preventDefault();
     selectElement(wrapper);
     startMove(e, wrapper);
@@ -292,8 +264,6 @@ function attachMoveRotate(wrapper, rotateHandle, dragTarget) {
   moveTarget.addEventListener('touchstart', e => {
     if (e.target === rotateHandle) return;
     if (e.target.classList.contains('note-delete-btn')) return;
-    if (e.target.classList.contains('delete-handle'))   return;
-    if (e.target.classList.contains('opacity-handle'))  return;
     if (e.target.tagName === 'TEXTAREA') return;
     e.preventDefault();
     selectElement(wrapper);
@@ -316,21 +286,21 @@ function attachMoveRotate(wrapper, rotateHandle, dragTarget) {
     }, { passive: true });
   }
 
-  // ── Rotate: mouse ──
-  rotateHandle.addEventListener('mousedown', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    selectElement(wrapper);
-    state.rotating = wrapper;
-  });
-
-  // ── Rotate: touch ──
-  rotateHandle.addEventListener('touchstart', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    selectElement(wrapper);
-    state.rotating = wrapper;
-  }, { passive: false });
+  // ── Rotate via note handle (notes only) ──
+  if (rotateHandle) {
+    rotateHandle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      selectElement(wrapper);
+      state.rotating = wrapper;
+    });
+    rotateHandle.addEventListener('touchstart', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      selectElement(wrapper);
+      state.rotating = wrapper;
+    }, { passive: false });
+  }
 }
 
 // ── Select / deselect ─────────────────────────
@@ -340,6 +310,7 @@ function selectElement(el) {
   }
   state.selected = el;
   el.classList.add('selected');
+  updateToolbar();
 }
 
 // Tap/click on bare canvas → deselect
@@ -347,22 +318,111 @@ floorCanvas.addEventListener('mousedown', e => {
   if (e.target === floorCanvas && state.selected) {
     state.selected.classList.remove('selected');
     state.selected = null;
+    hideToolbar();
   }
 });
 floorCanvas.addEventListener('touchstart', e => {
   if (e.target === floorCanvas && state.selected) {
     state.selected.classList.remove('selected');
     state.selected = null;
+    hideToolbar();
   }
 }, { passive: true });
+
+// ── Floating toolbar ──────────────────────────
+function updateToolbar() {
+  const el = state.selected;
+  if (!el || !el.classList.contains('placed-item')) {
+    hideToolbar();
+    return;
+  }
+
+  itemToolbar.removeAttribute('hidden');
+
+  // Sync opacity button state
+  toolbarOpacity.classList.toggle('is-active', el.dataset.faded === 'true');
+
+  positionToolbar(el);
+}
+
+function positionToolbar(el) {
+  const rect = el.getBoundingClientRect();
+  const tbW  = itemToolbar.offsetWidth  || 140;
+  const tbH  = itemToolbar.offsetHeight || 44;
+  const GAP  = 8;
+
+  // Prefer above the item; fall back to below if too close to viewport top
+  let top = rect.top - tbH - GAP;
+  if (top < 4) top = rect.bottom + GAP;
+
+  // Centre horizontally over the item, clamped to viewport
+  let left = rect.left + rect.width / 2 - tbW / 2;
+  left = Math.max(4, Math.min(left, window.innerWidth - tbW - 4));
+
+  itemToolbar.style.top  = top  + 'px';
+  itemToolbar.style.left = left + 'px';
+}
+
+function hideToolbar() {
+  itemToolbar.setAttribute('hidden', '');
+}
+
+// Toolbar — opacity toggle
+toolbarOpacity.addEventListener('mousedown', e => { e.stopPropagation(); });
+toolbarOpacity.addEventListener('click', () => {
+  const el = state.selected;
+  if (!el || !el.classList.contains('placed-item')) return;
+  const isFaded = el.dataset.faded === 'true';
+  el.dataset.faded  = isFaded ? 'false' : 'true';
+  el.style.opacity  = isFaded ? '1' : '0.5';
+  toolbarOpacity.classList.toggle('is-active', !isFaded);
+});
+
+// Toolbar — rotate (mousedown starts rotation, mouseup stops via global handler)
+toolbarRotate.addEventListener('mousedown', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (state.selected && state.selected.classList.contains('placed-item')) {
+    state.rotating = state.selected;
+  }
+});
+toolbarRotate.addEventListener('touchstart', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (state.selected && state.selected.classList.contains('placed-item')) {
+    state.rotating = state.selected;
+  }
+}, { passive: false });
+
+// Toolbar — delete
+toolbarDelete.addEventListener('mousedown', e => { e.stopPropagation(); });
+toolbarDelete.addEventListener('click', () => {
+  const el = state.selected;
+  if (!el || !el.classList.contains('placed-item')) return;
+  const label = el.dataset.label;
+  if (confirm(`"${label}" verwijderen van de vloer?`)) {
+    removeItem(el);
+    hideToolbar();
+  }
+});
+
+// Hide toolbar when clicking outside (not on an item or the toolbar itself)
+document.addEventListener('mousedown', e => {
+  if (!state.selected) return;
+  if (itemToolbar.contains(e.target)) return;
+  if (e.target.closest('.placed-item')) return;
+  if (e.target.closest('#floor-canvas') && e.target.tagName !== 'DIV') return;
+}, { capture: true });
 
 // ── Start moving ──────────────────────────────
 function startMove(e, wrapper) {
   const { clientX, clientY } = getEventCoords(e);
   const itemRect = wrapper.getBoundingClientRect();
   state.moving      = wrapper;
-  state.moveOffsetX = clientX - itemRect.left;
-  state.moveOffsetY = clientY - itemRect.top;
+  // Divide by SCALE: the item rect is in screen pixels (scaled),
+  // but positions inside the canvas are in original pixel space.
+  state.moveOffsetX = (clientX - itemRect.left) / SCALE;
+  state.moveOffsetY = (clientY - itemRect.top)  / SCALE;
   floorCanvas.appendChild(wrapper);  // bring to front
 }
 
@@ -370,8 +430,9 @@ function startMove(e, wrapper) {
 function handlePointerMove(clientX, clientY) {
   if (state.moving) {
     const canvasRect = floorCanvas.getBoundingClientRect();
-    let x = clientX - canvasRect.left - state.moveOffsetX;
-    let y = clientY - canvasRect.top  - state.moveOffsetY;
+    // Convert screen-pixel delta to canvas-pixel delta by dividing by SCALE
+    let x = (clientX - canvasRect.left) / SCALE - state.moveOffsetX;
+    let y = (clientY - canvasRect.top)  / SCALE - state.moveOffsetY;
 
     const maxX = floorCanvas.offsetWidth  - state.moving.offsetWidth;
     const maxY = floorCanvas.offsetHeight - state.moving.offsetHeight;
@@ -382,6 +443,7 @@ function handlePointerMove(clientX, clientY) {
     state.moving.style.top  = y + 'px';
 
     updateTrashHighlight(clientX, clientY);
+    if (state.moving === state.selected) positionToolbar(state.moving);
   }
 
   if (state.rotating) {
@@ -393,11 +455,12 @@ function handlePointerMove(clientX, clientY) {
 
     state.rotating.dataset.rotation = degrees;
     state.rotating.style.transform  = `rotate(${degrees}deg)`;
+    if (state.rotating === state.selected) positionToolbar(state.rotating);
   }
 
   if (state.resizing) {
-    const dx   = clientX - state.resizeStartX;
-    const dy   = clientY - state.resizeStartY;
+    const dx   = (clientX - state.resizeStartX) / SCALE;
+    const dy   = (clientY - state.resizeStartY) / SCALE;
     const newW = Math.max(80, state.resizeStartW + dx);
     const newH = Math.max(60, state.resizeStartH + dy);
     state.resizing.style.width  = newW + 'px';

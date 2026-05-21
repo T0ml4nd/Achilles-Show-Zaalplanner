@@ -26,9 +26,12 @@
   --radius-lg:  14px;
   --sidebar-width:  240px;
   --header-height:  56px;
-  /* Floor image exact pixel dimensions */
-  --floor-w: 1400px;
-  --floor-h: 933px;
+  /* Floor image exact pixel dimensions (original, unscaled) */
+  --floor-w: 15026px;
+  --floor-h: 8452px;
+  --scale: 0.093;
+  --floor-w-scaled: calc(15026px * 0.093);
+  --floor-h-scaled: calc(8452px  * 0.093);
 }
 
 html, body {
@@ -228,18 +231,29 @@ html, body {
   background: var(--color-bg);
 }
 
-/* ── Floor canvas — exact image dimensions, no scaling ── */
-#floor-canvas {
+#canvas-wrapper {
   position: relative;
-  width: var(--floor-w);
+  width:  var(--floor-w-scaled);
+  height: var(--floor-h-scaled);
+  flex-shrink: 0;
+}
+
+/* ── Floor canvas — full pixel size, scaled down visually ── */
+#floor-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width:  var(--floor-w);
   height: var(--floor-h);
-  background-image: url('vloer.jpg');
-  background-size: auto;        /* render at natural pixel size — no stretching */
+  background-image: url('vloer.png');
+  background-size: auto;
   background-repeat: no-repeat;
   background-position: top left;
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--color-border);
+  border-radius: calc(var(--radius-lg) / 0.093);
+  border: calc(2px / 0.093) solid var(--color-border);
   box-shadow: var(--shadow-md);
+  transform: scale(var(--scale));
+  transform-origin: top left;
   flex-shrink: 0;
 }
 
@@ -266,40 +280,61 @@ html, body {
 .placed-item:hover    { outline: 2px solid var(--color-accent); z-index: 10; }
 .placed-item.selected { outline: 2px solid var(--color-accent); z-index: 20; }
 
-/* ── Rotation handle ─────────────────────────── */
-.rotate-handle {
-  position: absolute;
-  top: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 24px;
-  background: var(--color-accent);
-  color: #fff;
-  border-radius: 50%;
-  display: none;              /* shown only when parent is .selected */
+/* ── Floating item toolbar (screen-space, outside scaled canvas) ── */
+.item-toolbar {
+  position: fixed;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 4px 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15), 0 1px 4px rgba(0,0,0,.08);
+  pointer-events: auto;
+}
+.item-toolbar[hidden] { display: none; }
+
+.toolbar-btn {
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  cursor: grab;
-  box-shadow: 0 2px 6px rgba(0,0,0,.25);
-  z-index: 30;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 16px;
   line-height: 1;
+  transition: background .12s, color .12s, transform .1s;
 }
-.rotate-handle:active { cursor: grabbing; }
-.placed-item.selected .rotate-handle { display: flex; }
+.toolbar-btn:hover  { background: var(--color-bg); }
+.toolbar-btn:active { transform: scale(.9); }
 
-/* Line connecting handle to item (visual only) */
-.rotate-handle::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
+.toolbar-btn-rotate {
+  cursor: grab;
+  color: var(--color-accent);
+}
+.toolbar-btn-rotate:hover { background: var(--color-accent-dim); }
+.toolbar-btn-rotate:active { cursor: grabbing; }
+
+.toolbar-btn-danger { color: var(--color-danger); }
+.toolbar-btn-danger:hover { background: var(--color-danger-dim); }
+
+.toolbar-btn.is-active {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+.toolbar-divider {
   width: 1px;
-  height: 8px;
-  background: var(--color-accent);
-  opacity: .6;
+  height: 18px;
+  background: var(--color-border);
+  margin: 0 2px;
+  flex-shrink: 0;
 }
 
 /* ── Trashcan ─────────────────────────────────── */
@@ -363,66 +398,7 @@ html, body {
   75%      { transform: translateX(6px); }
 }
 
-/* ── Delete handle (sits next to rotate handle) ── */
-.delete-handle {
-  position: absolute;
-  top: -30px;
-  left: calc(50% + 28px);   /* right of the rotate handle */
-  width: 24px;
-  height: 24px;
-  background: var(--color-danger);
-  color: #fff;
-  border-radius: 50%;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,.25);
-  z-index: 30;
-  line-height: 1;
-  transition: background .15s, transform .1s;
-}
-.delete-handle:hover  { background: #b91c1c; transform: scale(1.1); }
-.delete-handle:active { transform: scale(.95); }
-.placed-item.selected .delete-handle { display: flex; }
 
-/* Three handles sit as an evenly spaced row above the item:
-   opacity (left) — rotate (centre) — delete (right)         */
-.placed-item.selected .rotate-handle {
-  left: 50%;
-  transform: translateX(-50%);
-}
-.placed-item.selected .delete-handle {
-  left: calc(50% + 28px);
-}
-
-/* ── Opacity (faded) handle ── */
-.opacity-handle {
-  position: absolute;
-  top: -30px;
-  left: calc(50% - 28px);
-  transform: translateX(-50%);
-  width: 24px;
-  height: 24px;
-  background: #6b7280;
-  color: #fff;
-  border-radius: 50%;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,.25);
-  z-index: 30;
-  line-height: 1;
-  transition: background .15s, transform .1s;
-}
-.opacity-handle:hover  { background: #4b5563; transform: translateX(-50%) scale(1.1); }
-.opacity-handle:active { transform: translateX(-50%) scale(.95); }
-.opacity-handle.is-active { background: #2563eb; }
-.placed-item.selected .opacity-handle { display: flex; }
 
 /* ── Note launcher button in sidebar ────────── */
 .note-launcher {
