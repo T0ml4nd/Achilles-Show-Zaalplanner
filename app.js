@@ -3,7 +3,8 @@
 const W = 15026, H = 8452;      // afmetingen van vloer.png in pixels
 const MAX = 0.6;                // maximale zoom (schaal)
 const EXPORT = 0.25;            // PNG-export op 25% van de originele vloer
-const NOTE_BAR = 300;           // hoogte notitie-balk (zelfde als in style.css)
+const NOTE_FONT = 160, NOTE_PAD = 20;   // notitie-maten (zelfde als in style.css)
+const ROT_STEP = 360 / 16;      // draaien springt in 16 standen (22,5°)
 
 const $ = s => document.querySelector(s);
 const vp = $('#viewport'), floor = $('#floor'), tb = $('#toolbar');
@@ -69,12 +70,10 @@ function addItem(d, x, y, centred) {
 function addNote(d) {
   const n = document.createElement('div');
   n.className = 'note'; n.dataset.rot = d.rot || 0;
-  n.innerHTML = '<div class="note-bar">📝<button class="note-del" title="Verwijderen">✕</button></div>' +
-                '<textarea placeholder="Notitie…"></textarea><div class="note-resize"></div>';
+  n.innerHTML = '<textarea placeholder="Notitie…"></textarea><div class="note-resize"></div>';
   n.querySelector('textarea').value = d.text || '';
-  n.style.cssText = `left:${d.x}px;top:${d.y}px;width:${Math.max(d.w || 0, 1500)}px;height:${Math.max(d.h || 0, 900)}px;` +
+  n.style.cssText = `left:${d.x}px;top:${d.y}px;width:${Math.max(d.w || 700, 300)}px;height:${Math.max(d.h || 300, 200)}px;` +
                     `transform:rotate(${d.rot || 0}deg)`;
-  n.querySelector('.note-del').onclick = () => { if (sel === n) select(null); n.remove(); };
   floor.append(n);
   return n;
 }
@@ -88,7 +87,10 @@ $('.sidebar').addEventListener('click', e => {
     select(addItem({ id: li.dataset.id, label: li.dataset.label, img: li.dataset.img }, c.x, c.y, true));
   }
 });
-$('#btn-note').onclick = () => { const c = centre(); select(addNote({ x: c.x - 1100, y: c.y - 650 })); };
+$('#btn-note').onclick = () => {
+  const c = centre(), n = addNote({ x: c.x - 350, y: c.y - 150 });
+  select(n); n.querySelector('textarea').focus();
+};
 
 // Teller per toestel in de sidebar
 new MutationObserver(() => {
@@ -106,7 +108,9 @@ function select(el) {
   placeToolbar();
 }
 function placeToolbar() {
-  if (!sel || !sel.classList.contains('item')) { tb.hidden = true; return; }
+  if (!sel) { tb.hidden = true; return; }
+  const isItem = sel.classList.contains('item');
+  $('#tb-fade').hidden = $('#tb-rot').hidden = !isItem;   // notities: alleen verwijderen
   const r = sel.getBoundingClientRect(), a = vp.getBoundingClientRect();
   const visible = r.right > a.left && r.left < a.right && r.bottom > a.top && r.top < a.bottom;
   tb.hidden = !visible;
@@ -132,19 +136,23 @@ window.addEventListener('keydown', e => {
 });
 
 // ══ 4. Slepen: verplaatsen, draaien, formaat, pannen ═
+// Laatst aangeraakte element naar voren (volgorde in de DOM = stapelvolgorde)
+const raise = el => { if (floor.lastElementChild !== el) floor.append(el); };
+
 vp.addEventListener('pointerdown', e => {
   const t = e.target;
-  if (e.button || t.closest('#zoom-bar') || t.closest('.note-del')) return;
+  if (e.button || t.closest('#zoom-bar')) return;
   const item = t.closest('.item'), note = t.closest('.note');
+  // Notitie waar je al in typt: gewoon tekst selecteren/cursor plaatsen
+  if (note && !t.classList.contains('note-resize') && document.activeElement === note.querySelector('textarea')) { select(note); return; }
   if (document.activeElement.blur) document.activeElement.blur();
   if (t.classList.contains('note-resize')) {
-    select(note);
+    select(note); raise(note);
     drag = { k: 'size', el: note, x: e.clientX, y: e.clientY, w: note.offsetWidth, h: note.offsetHeight };
-  } else if (item || t.closest('.note-bar')) {
-    const el = item || note; select(el);
+  } else if (item || note) {
+    const el = item || note; select(el); raise(el);
     drag = { k: 'move', el, x: e.clientX, y: e.clientY, l: el.offsetLeft, t: el.offsetTop };
-  } else if (note) { select(note); return; }            // klik in de tekst: gewoon typen
-  else drag = { k: 'pan', x: e.clientX, y: e.clientY, tx, ty, moved: false };
+  } else drag = { k: 'pan', x: e.clientX, y: e.clientY, tx, ty, moved: false };
   e.preventDefault();
 });
 window.addEventListener('pointermove', e => {
@@ -154,22 +162,28 @@ window.addEventListener('pointermove', e => {
     if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
     tx = drag.tx + dx; ty = drag.ty + dy; applyView();
   } else if (drag.k === 'move') {
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
     const el = drag.el;
     el.style.left = Math.max(0, Math.min(drag.l + dx / s, W - el.offsetWidth)) + 'px';
     el.style.top  = Math.max(0, Math.min(drag.t + dy / s, H - el.offsetHeight)) + 'px';
     placeToolbar();
   } else if (drag.k === 'size') {
-    drag.el.style.width  = Math.max(800, drag.w + dx / s) + 'px';
-    drag.el.style.height = Math.max(600, drag.h + dy / s) + 'px';
+    drag.el.style.width  = Math.max(300, drag.w + dx / s) + 'px';
+    drag.el.style.height = Math.max(200, drag.h + dy / s) + 'px';
   } else if (drag.k === 'rot' && sel) {
     const r = sel.getBoundingClientRect();
     let a = Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI + 90;
-    a = e.shiftKey ? Math.round(a / 15) * 15 : Math.round(a);
+    a = Math.round(a / ROT_STEP) * ROT_STEP;
     sel.dataset.rot = a; sel.style.transform = `rotate(${a}deg)`;
     placeToolbar();
   }
 });
-const endDrag = () => { if (drag && drag.k === 'pan' && !drag.moved) select(null); drag = null; };
+const endDrag = () => {
+  if (drag && drag.k === 'pan' && !drag.moved) select(null);
+  // Klik (zonder slepen) op een notitie → tekst bewerken
+  if (drag && drag.k === 'move' && !drag.moved && drag.el.classList.contains('note')) drag.el.querySelector('textarea').focus();
+  drag = null;
+};
 window.addEventListener('pointerup', endDrag);
 window.addEventListener('pointercancel', endDrag);
 
@@ -230,20 +244,19 @@ $('#btn-png').onclick = async () => {
         g.globalAlpha = el.dataset.faded === '1' ? 0.5 : 1;
         g.drawImage(el.firstChild, -w / 2, -h / 2, w, h);
       } else {
-        const bar = NOTE_BAR * EXPORT, fs = 160 * EXPORT, pad = 40 * EXPORT;
-        g.fillStyle = '#fef9c3'; g.fillRect(-w / 2, -h / 2, w, h);
-        g.fillStyle = '#fde047'; g.fillRect(-w / 2, -h / 2, w, bar);
-        g.strokeStyle = '#ca8a04'; g.lineWidth = 2; g.strokeRect(-w / 2, -h / 2, w, h);
+        const fs = NOTE_FONT * EXPORT, pad = NOTE_PAD * EXPORT;
+        g.fillStyle = 'rgba(255,255,255,.9)'; g.fillRect(-w / 2, -h / 2, w, h);
+        g.strokeStyle = '#1a1d23'; g.lineWidth = 2; g.strokeRect(-w / 2, -h / 2, w, h);
         g.fillStyle = '#1a1d23'; g.font = `500 ${fs}px Barlow, sans-serif`; g.textBaseline = 'top';
-        let y = -h / 2 + bar + pad;
+        let y = -h / 2 + pad;
         for (const para of el.querySelector('textarea').value.split('\n')) {
           let line = '';
           for (const word of para.split(' ')) {
             const t = line ? line + ' ' + word : word;
-            if (line && g.measureText(t).width > w - 2 * pad) { g.fillText(line, -w / 2 + pad, y); y += fs * 1.25; line = word; }
+            if (line && g.measureText(t).width > w - 2 * pad) { g.fillText(line, -w / 2 + pad, y); y += fs * 1.2; line = word; }
             else line = t;
           }
-          g.fillText(line, -w / 2 + pad, y); y += fs * 1.25;
+          g.fillText(line, -w / 2 + pad, y); y += fs * 1.2;
         }
       }
       g.restore();
@@ -252,6 +265,37 @@ $('#btn-png').onclick = async () => {
   } catch (err) {
     alert('PNG exporteren mislukt. Gebruik Live Server of de website (niet het bestand direct openen).\n\n' + err.message);
   }
+};
+
+// Materiaallijst (.txt): alle toestellen op de vloer, per categorie, met aantallen
+const btnTxt = $('#btn-txt');
+if (btnTxt) btnTxt.onclick = () => {
+  const name = needName(); if (!name) return;
+  const cats = new Map();                                   // categorie → (toestel → aantal)
+  floor.querySelectorAll('.item').forEach(el => {
+    const li = document.querySelector(`.equipment-item[data-id="${el.dataset.id}"]`);
+    const cat = li ? li.closest('.category').querySelector('.category-name').textContent.trim() : 'Overig';
+    if (!cats.has(cat)) cats.set(cat, new Map());
+    const m = cats.get(cat);
+    m.set(el.dataset.label, (m.get(el.dataset.label) || 0) + 1);
+  });
+  if (!cats.size) { alert('Er staan nog geen toestellen op de vloer.'); return; }
+
+  const order = [...document.querySelectorAll('.category-name')].map(n => n.textContent.trim());
+  const rank = c => order.indexOf(c) < 0 ? 999 : order.indexOf(c);
+  const lines = [`Materiaallijst - ${name}`, `Datum: ${new Date().toLocaleDateString('nl-NL')}`, ''];
+  let total = 0;
+  [...cats].sort((a, b) => rank(a[0]) - rank(b[0])).forEach(([cat, items]) => {
+    lines.push(cat.toUpperCase());
+    [...items].sort((a, b) => a[0].localeCompare(b[0], 'nl')).forEach(([label, n]) => {
+      lines.push(`  ${n} x ${label}`); total += n;
+    });
+    lines.push('');
+  });
+  lines.push(`Totaal: ${total} toestellen`);
+
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
+  download(URL.createObjectURL(blob), `materiaallijst-${slug(name)}.txt`);
 };
 
 // ══ Start ════════════════════════════════════
