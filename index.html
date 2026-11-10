@@ -5,46 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Achilles Show Zaalplanner</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-
-  <header class="app-header">
-    <div class="header-title">
-      <span class="header-icon">🤸</span>
-      <h1>Achilles Show Zaalplanner</h1>
-    </div>
-    <div class="header-actions">
-      <div class="layout-name-wrap">
-        <input id="layout-name" type="text" class="layout-name-input" placeholder="Naam van het nummer" maxlength="60" />
-      </div>
-      <button id="btn-save"       class="btn btn-secondary">💾 Opslaan</button>
-      <button id="btn-load-wrap"  class="btn btn-secondary">📂 Indeling inladen<input id="btn-load" type="file" accept=".json" /></button>
-      <button id="btn-export-png" class="btn btn-secondary">⬇ Download als PNG</button>
-      <button id="btn-export-txt" class="btn btn-secondary">📄 Download materiaallijst</button>
-      <button id="btn-clear"      class="btn btn-danger">🗑️ Alles verwijderen</button>
-    </div>
+  <header>
+    <h1>🤸 Achilles Show Zaalplanner</h1>
+    <input id="layout-name" type="text" placeholder="Naam van het nummer" maxlength="60" />
+    <button id="btn-save">💾 Opslaan</button>
+    <label class="btn">📂 Inladen<input id="file-load" type="file" accept=".json" hidden /></label>
+    <button id="btn-png">⬇ PNG</button>
+    <button id="btn-note">📝 Notitie</button>
+    <button id="btn-clear" class="danger">🗑️ Alles verwijderen</button>
   </header>
 
-  <div class="app-body">
-
-    <!-- SIDEBAR -->
+  <div class="body">
+    <!-- ═══ SIDEBAR: vervang dit hele <aside>…</aside> blok door de uitvoer van generate_sidebar.py ═══ -->
     <aside class="sidebar">
-      <p class="sidebar-hint">
-        Klik op een toestel om het op de vloer te plaatsen.<br>
-        Sleep de toestellen om ze te verplaatsen.<br>
-        Gebruik het <strong>⬓</strong> symbool om een toestel doorzichtig te maken.<br>
-        Gebruik het <strong>↻</strong> symbool om te toestellen te draaien.<br>
-        Gebruik het <strong>🗑️</strong> symbool om een toestel te verwijderen of sleep het naar de prullenbak onderaan de pagina.
-      </p>
+      <p class="sidebar-hint">Klik op een toestel om het op de vloer te plaatsen.<br>Sleep de toestellen om ze te verplaatsen.<br>Gebruik het <strong>⬓</strong> symbool om een toestel doorzichtig te maken.<br>Gebruik het <strong>↻</strong> symbool om te toestellen te draaien.<br>Gebruik het <strong>🗑️</strong> symbool om een toestel te verwijderen of sleep het naar de prullenbak onderaan de pagina.</p>
 
-      <!-- Notitie toevoegen -->
-      <div class="note-launcher">
-        <button id="btn-add-note" class="btn btn-note">📝 Notitie toevoegen</button>
-      </div>
-
-      <!-- Vervang de inhoud hieronder met de uitvoer van generate_sidebar.py -->
       <div class="category" data-open="true">
         <button class="category-header">
           <span class="category-icon">📦</span>
@@ -59,6 +37,14 @@
               data-img="images/Grote toestellen/Airtrack groot.png">
             <span class="item-label">Airtrack groot</span>
             <span class="item-count" data-for="airtrack-groot">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="balk"
+              data-label="Balk"
+              data-img="images/Grote toestellen/Balk.png">
+            <span class="item-label">Balk</span>
+            <span class="item-count" data-for="balk">0</span>
           </li>
           <li class="equipment-item"
               draggable="true"
@@ -86,6 +72,22 @@
           </li>
           <li class="equipment-item"
               draggable="true"
+              data-id="bosan-blok-plat"
+              data-label="Bosan blok plat"
+              data-img="images/Grote toestellen/Bosan blok plat.png">
+            <span class="item-label">Bosan blok plat</span>
+            <span class="item-count" data-for="bosan-blok-plat">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="bosan-blok-zijkant"
+              data-label="Bosan blok zijkant"
+              data-img="images/Grote toestellen/Bosan blok zijkant.png">
+            <span class="item-label">Bosan blok zijkant</span>
+            <span class="item-count" data-for="bosan-blok-zijkant">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
               data-id="brug-heren"
               data-label="Brug heren"
               data-img="images/Grote toestellen/Brug heren.png">
@@ -107,6 +109,22 @@
               data-img="images/Grote toestellen/Combiframe basis.png">
             <span class="item-label">Combiframe basis</span>
             <span class="item-count" data-for="combiframe-basis">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="combiframe-boven"
+              data-label="Combiframe boven"
+              data-img="images/Grote toestellen/Combiframe boven.png">
+            <span class="item-label">Combiframe boven</span>
+            <span class="item-count" data-for="combiframe-boven">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="combiframe-onder"
+              data-label="Combiframe onder"
+              data-img="images/Grote toestellen/Combiframe onder.png">
+            <span class="item-label">Combiframe onder</span>
+            <span class="item-count" data-for="combiframe-onder">0</span>
           </li>
           <li class="equipment-item"
               draggable="true"
@@ -192,11 +210,43 @@
           </li>
           <li class="equipment-item"
               draggable="true"
+              data-id="lange-mat"
+              data-label="Lange mat"
+              data-img="images/Matten/Lange mat.png">
+            <span class="item-label">Lange mat</span>
+            <span class="item-count" data-for="lange-mat">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="matras"
+              data-label="Matras"
+              data-img="images/Matten/Matras.png">
+            <span class="item-label">Matras</span>
+            <span class="item-count" data-for="matras">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="topper"
+              data-label="Topper"
+              data-img="images/Matten/Topper.png">
+            <span class="item-label">Topper</span>
+            <span class="item-count" data-for="topper">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
               data-id="turnmat"
               data-label="Turnmat"
               data-img="images/Matten/Turnmat.png">
             <span class="item-label">Turnmat</span>
             <span class="item-count" data-for="turnmat">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="turnmatje"
+              data-label="Turnmatje"
+              data-img="images/Matten/Turnmatje.png">
+            <span class="item-label">Turnmatje</span>
+            <span class="item-count" data-for="turnmatje">0</span>
           </li>
         </ul>
       </div>
@@ -268,6 +318,38 @@
         <ul class="category-items">
           <li class="equipment-item"
               draggable="true"
+              data-id="bokje"
+              data-label="Bokje"
+              data-img="images/Troepjes/Bokje.png">
+            <span class="item-label">Bokje</span>
+            <span class="item-count" data-for="bokje">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="hoepel"
+              data-label="Hoepel"
+              data-img="images/Troepjes/Hoepel.png">
+            <span class="item-label">Hoepel</span>
+            <span class="item-count" data-for="hoepel">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="kruiptunnel"
+              data-label="Kruiptunnel"
+              data-img="images/Troepjes/Kruiptunnel.png">
+            <span class="item-label">Kruiptunnel</span>
+            <span class="item-count" data-for="kruiptunnel">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
+              data-id="pilon"
+              data-label="Pilon"
+              data-img="images/Troepjes/Pilon.png">
+            <span class="item-label">Pilon</span>
+            <span class="item-count" data-for="pilon">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
               data-id="rivierstenen"
               data-label="Rivierstenen"
               data-img="images/Troepjes/Rivierstenen.png">
@@ -292,6 +374,14 @@
           </li>
           <li class="equipment-item"
               draggable="true"
+              data-id="wip-legger"
+              data-label="Wip legger"
+              data-img="images/Troepjes/Wip legger.png">
+            <span class="item-label">Wip legger</span>
+            <span class="item-count" data-for="wip-legger">0</span>
+          </li>
+          <li class="equipment-item"
+              draggable="true"
               data-id="wip-plank"
               data-label="Wip plank"
               data-img="images/Troepjes/Wip plank.png">
@@ -302,37 +392,24 @@
       </div>
 
     </aside>
+    <!-- ═══ EINDE SIDEBAR ═══ -->
 
-    <!-- MAIN CANVAS AREA -->
-    <main class="canvas-area">
-      <div id="canvas-wrapper">
-        <div id="floor-canvas">
-          <!-- geplaatste items worden hier ingevoegd door app.js -->
-        </div>
+    <main id="viewport">
+      <div id="floor"></div>
+      <div id="zoom-bar">
+        <button id="zoom-in" title="Inzoomen">+</button>
+        <input id="zoom-slider" type="range" min="0" max="100" step="any" value="0" />
+        <button id="zoom-out" title="Uitzoomen">−</button>
+        <button id="zoom-readout" title="Terug naar overzicht">100%</button>
       </div>
-
-      <div id="trashcan" class="trashcan">
-        <span class="trashcan-icon">🗑️</span>
-        <span class="trashcan-label">Sleep hier naartoe om te verwijderen</span>
-      </div>
+      <p class="hint">Klik op een toestel links om te plaatsen · sleep om te verplaatsen · scrollwiel = zoomen · sleep de vloer = verschuiven</p>
     </main>
-
-    <!-- Floating toolbar — positioned in screen space, outside the scaled canvas -->
-    <div id="item-toolbar" class="item-toolbar" hidden>
-      <button id="toolbar-opacity" class="toolbar-btn" title="Doorzichtigheid aan/uit (gestapeld materiaal)">
-        <span class="toolbar-btn-icon">⬓</span>
-      </button>
-      <div class="toolbar-divider"></div>
-      <button id="toolbar-rotate" class="toolbar-btn toolbar-btn-rotate" title="Ingedrukt houden en slepen om te draaien">
-        <span class="toolbar-btn-icon">↻</span>
-      </button>
-      <div class="toolbar-divider"></div>
-      <button id="toolbar-delete" class="toolbar-btn toolbar-btn-danger" title="Item verwijderen">
-        <span class="toolbar-btn-icon">✕</span>
-      </button>
-    </div>
-
   </div>
 
+  <div id="toolbar" hidden>
+    <button id="tb-fade" title="Doorzichtig maken">⬓</button>
+    <button id="tb-rot"  title="Ingedrukt houden en slepen om te draaien (Shift = stappen van 15°)">↻</button>
+    <button id="tb-del"  title="Verwijderen">🗑️</button>
+  </div>
 </body>
 </html>
